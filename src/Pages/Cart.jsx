@@ -66,75 +66,54 @@ function Cart() {
     });
   };
 
+  const confirmarVaciar = () => {
+    Swal.fire({
+      icon: "question",
+      title: "¿Vaciar el carrito?",
+      showCancelButton: true,
+      confirmButtonText: "Sí, vaciar",
+      cancelButtonText: "Cancelar",
+    }).then((result) => {
+      if (result.isConfirmed) clearCart();
+    });
+  };
+
   return (
     <>
       <Navbar />
 
-      <div style={{ padding: "30px" }}>
+      <div className="cart-page">
         <h1>Carrito de Compras</h1>
 
         {cart.length === 0 ? (
-          <p>Tu carrito está vacío.</p>
+          <p className="cart-empty">
+            Tu carrito está vacío. ¡Explora nuestro menú y encuentra tu antojo!
+          </p>
         ) : (
           <>
             {productosOrdenados.map((producto) => (
-              <div
-                key={producto.id}
-                style={{
-                  border: "1px solid #ccc",
-                  padding: "15px",
-                  marginBottom: "10px",
-                  borderRadius: "8px",
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  flexWrap: "wrap",
-                  gap: "15px",
-                }}
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-                  <img
-                    src={producto.imagen}
-                    alt={producto.nombre}
-                    style={{
-                      width: "90px",
-                      height: "90px",
-                      objectFit: "contain",
-                      objectPosition: "center",
-                      background: "var(--gris-suave)",
-                      borderRadius: "8px",
-                      padding: "6px",
-                    }}
-                  />
+              <div key={producto.id} className="cart-item">
+                <div className="cart-item-info">
+                  <img src={producto.imagen} alt={producto.nombre} />
                   <div>
-                    <h3 style={{ margin: 0 }}>{producto.nombre}</h3>
-                    <p style={{ margin: "5px 0 0", color: "#555" }}>
-                      ${producto.precio.toLocaleString("es-CO")} c/u
-                    </p>
+                    <h3>{producto.nombre}</h3>
+                    <p>${producto.precio.toLocaleString("es-CO")} c/u</p>
                   </div>
                 </div>
 
-                <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+                <div className="cart-qty">
                   <button onClick={() => decreaseQty(producto.id)}>-</button>
                   <strong>{producto.cantidad}</strong>
                   <button onClick={() => increaseQty(producto.id)}>+</button>
                 </div>
 
                 <div style={{ textAlign: "right" }}>
-                  <h4 style={{ margin: 0 }}>
+                  <h3 style={{ margin: 0 }}>
                     ${(producto.precio * producto.cantidad).toLocaleString("es-CO")}
-                  </h4>
+                  </h3>
                   <button
+                    className="btn-danger"
                     onClick={() => removeFromCart(producto.id)}
-                    style={{
-                      marginTop: "8px",
-                      background: "crimson",
-                      color: "white",
-                      border: "none",
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      cursor: "pointer",
-                    }}
                   >
                     Eliminar
                   </button>
@@ -142,101 +121,69 @@ function Cart() {
               </div>
             ))}
 
-            <hr />
+            <div className="cart-total">
+              Total: <strong>${total.toLocaleString("es-CO")}</strong>
+            </div>
 
-            <h2>Total: ${total.toLocaleString("es-CO")}</h2>
-
-            <div style={{ margin: "20px 0" }}>
-              <h3>Elige tu mesa (1 - 10)</h3>
-              <div
-                style={{
-                  display: "grid",
-                  gridTemplateColumns: "repeat(5, 80px)",
-                  gap: "10px",
-                  justifyContent: "start",
-                }}
-              >
+            <div className="section-block">
+              <h3>🪑 Elige tu mesa (1 - 10)</h3>
+              <div className="table-grid">
                 {mesas.map((numero) => (
                   <button
                     key={numero}
+                    className={`table-btn ${mesa === numero ? "active" : ""}`}
                     onClick={() => setMesa(numero)}
-                    style={{
-                      padding: "14px 0",
-                      borderRadius: "8px",
-                      border: mesa === numero ? "3px solid #2563eb" : "1px solid #cbd5e1",
-                      background: mesa === numero ? "#dbeafe" : "white",
-                      color: mesa === numero ? "#1e3a8a" : "#374151",
-                      fontSize: "16px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                    }}
                   >
-                    🪑 Mesa {numero}
+                    Mesa {numero}
                   </button>
                 ))}
               </div>
             </div>
 
-            <div style={{ margin: "20px 0" }}>
-              <h3>Método de pago</h3>
-              <label style={{ marginRight: "20px", cursor: "pointer" }}>
-                <input
-                  type="radio"
-                  name="pago"
-                  value="efectivo"
-                  checked={pago === "efectivo"}
-                  onChange={(e) => setPago(e.target.value)}
-                />{" "}
-                💵 Efectivo
-              </label>
-              <label style={{ cursor: "pointer" }}>
-                <input
-                  type="radio"
-                  name="pago"
-                  value="transferencia"
-                  checked={pago === "transferencia"}
-                  onChange={(e) => setPago(e.target.value)}
-                />{" "}
-                🏦 Transferencia
-              </label>
+            <div className="section-block">
+              <h3>💳 Método de pago</h3>
+              <div className="radio-group">
+                <label>
+                  <input
+                    type="radio"
+                    name="pago"
+                    value="efectivo"
+                    checked={pago === "efectivo"}
+                    onChange={(e) => setPago(e.target.value)}
+                  />{" "}
+                  💵 Efectivo
+                </label>
+                <label>
+                  <input
+                    type="radio"
+                    name="pago"
+                    value="transferencia"
+                    checked={pago === "transferencia"}
+                    onChange={(e) => setPago(e.target.value)}
+                  />{" "}
+                  🏦 Transferencia
+                </label>
+              </div>
             </div>
 
             {pago === "transferencia" && (
-              <div
-                style={{
-                  background: "#f8f5f0",
-                  padding: "15px",
-                  borderRadius: "8px",
-                  marginBottom: "20px",
-                }}
-              >
+              <div className="transfer-info">
                 <strong>Datos para la transferencia:</strong>
-                <p style={{ margin: "5px 0 0" }}>
+                <p>
                   Banco: Cafetería Elyon · Cuenta: 1234 5678 9012 ·
                   Ahorros
                 </p>
               </div>
             )}
 
-            <button
-              onClick={realizarPedido}
-              style={{
-                background: "#6F4E37",
-                color: "white",
-                border: "none",
-                padding: "12px 30px",
-                borderRadius: "8px",
-                cursor: "pointer",
-                fontSize: "16px",
-                marginRight: "10px",
-              }}
-            >
-              Realizar pedido
-            </button>
-
-            <button onClick={clearCart}>
-              Vaciar carrito
-            </button>
+            <div className="cart-actions">
+              <button className="btn-primary" onClick={realizarPedido}>
+                Realizar pedido
+              </button>
+              <button className="btn-outline" onClick={confirmarVaciar}>
+                Vaciar carrito
+              </button>
+            </div>
           </>
         )}
       </div>

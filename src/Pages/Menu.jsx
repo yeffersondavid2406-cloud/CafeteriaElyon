@@ -35,6 +35,9 @@ function Menu() {
 
       <div className="menu-container">
         <h1>Nuestro Menú</h1>
+        <p className="menu-lead">
+          Sabores preparados con cariño para tu pausa perfecta
+        </p>
 
         <SearchBar
           search={search}

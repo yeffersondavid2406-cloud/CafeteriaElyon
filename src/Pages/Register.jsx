@@ -38,102 +38,47 @@ function Register() {
   };
 
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        background: "linear-gradient(120deg,#1e3a8a,#2563eb)",
-      }}
-    >
-      <form
-        onSubmit={handleSubmit}
-        style={{
-          background: "white",
-          padding: "35px 40px",
-          borderRadius: "12px",
-          width: "360px",
-          boxShadow: "0 10px 30px rgba(0,0,0,.25)",
-        }}
-      >
-        <h2 style={{ marginTop: 0, color: "#1e3a8a", textAlign: "center" }}>
-          Registrar Administrador
-        </h2>
+    <div className="auth-page">
+      <form onSubmit={handleSubmit} className="auth-card">
+        <h2>Registrar Administrador</h2>
 
-        <label style={{ display: "block", marginBottom: "14px" }}>
+        <label>
           Usuario
           <input
             type="text"
             value={usuario}
             onChange={(e) => setUsuario(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-            }}
           />
         </label>
 
-        <label style={{ display: "block", marginBottom: "14px" }}>
+        <label>
           Contraseña
           <input
             type="password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-            }}
           />
         </label>
 
-        <label style={{ display: "block", marginBottom: "20px" }}>
+        <label style={{ marginBottom: "20px" }}>
           Confirmar contraseña
           <input
             type="password"
             value={confirmar}
             onChange={(e) => setConfirmar(e.target.value)}
             required
-            style={{
-              width: "100%",
-              padding: "10px",
-              marginTop: "4px",
-              borderRadius: "6px",
-              border: "1px solid #cbd5e1",
-            }}
           />
         </label>
 
-        <button
-          type="submit"
-          style={{
-            width: "100%",
-            padding: "12px",
-            background: "#2563eb",
-            color: "white",
-            border: "none",
-            borderRadius: "8px",
-            fontSize: "16px",
-            fontWeight: "600",
-            cursor: "pointer",
-          }}
-        >
+        <button type="submit" className="btn-primary">
           Registrarse
         </button>
 
-        <p style={{ textAlign: "center", marginTop: "16px" }}>
+        <p className="auth-footer">
           ¿Ya tienes cuenta?{" "}
-          <Link to="/login" style={{ color: "#2563eb" }}>
-            Iniciar sesión
-          </Link>
+          <Link to="/login">Iniciar sesión</Link>
         </p>
       </form>
     </div>

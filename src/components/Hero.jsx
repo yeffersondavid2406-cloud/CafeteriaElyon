@@ -6,7 +6,7 @@ function Hero() {
     <section
       className="hero-banner"
       style={{
-        backgroundImage: `linear-gradient(rgba(30,58,138,.65), rgba(37,99,235,.55)), url(${banner})`,
+        backgroundImage: `linear-gradient(rgba(62,43,30,.62), rgba(107,68,35,.5)), url(${banner})`,
       }}
     >
       <div className="hero-content">

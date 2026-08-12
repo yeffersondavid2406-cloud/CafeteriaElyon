@@ -5,6 +5,7 @@ import Swal from "sweetalert2";
 import { AuthContext } from "../context/auth-context";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
+import products from "../data/products";
 
 function Admin() {
   const { admin, logout } = useContext(AuthContext);
@@ -13,6 +14,9 @@ function Admin() {
   if (!admin) {
     return <Navigate to="/login" replace />;
   }
+
+  const categorias = [...new Set(products.map((p) => p.categoria))];
+  const destacados = products.filter((p) => p.destacado).length;
 
   const handleLogout = () => {
     Swal.fire({
@@ -33,43 +37,46 @@ function Admin() {
     <>
       <Navbar />
 
-      <div style={{ padding: "40px", textAlign: "center" }}>
-        <h1 style={{ color: "#1e3a8a" }}>Panel de Administración</h1>
+      <div className="admin-page">
+        <h1 className="admin-title">Panel de Administración</h1>
+        <p className="admin-subtitle">
+          Gestiona los productos y pedidos de la cafetería con facilidad
+        </p>
 
-        <div
-          style={{
-            background: "white",
-            maxWidth: "500px",
-            margin: "30px auto",
-            padding: "30px",
-            borderRadius: "12px",
-            boxShadow: "0 4px 15px rgba(30,58,138,.12)",
-          }}
-        >
-          <p>
+        <div className="admin-panel">
+          <p className="admin-greeting">
             Sesión iniciada como{" "}
-            <strong style={{ color: "#2563eb" }}>{admin.usuario}</strong>
-          </p>
-          <p>
-            Desde aquí el administrador podrá gestionar los productos y
-            pedidos de la cafetería.
+            <strong>{admin.usuario}</strong> 👋
           </p>
 
-          <button
-            onClick={handleLogout}
-            style={{
-              background: "#dc2626",
-              color: "white",
-              border: "none",
-              padding: "12px 25px",
-              borderRadius: "8px",
-              fontSize: "16px",
-              cursor: "pointer",
-              marginTop: "10px",
-            }}
-          >
-            Cerrar sesión
-          </button>
+          <div className="admin-stats">
+            <div className="stat-card">
+              <span className="icono">🍽️</span>
+              <span className="valor">{products.length}</span>
+              <span className="etiqueta">Productos</span>
+            </div>
+
+            <div className="stat-card">
+              <span className="icono">🏷️</span>
+              <span className="valor">{categorias.length}</span>
+              <span className="etiqueta">Categorías</span>
+            </div>
+
+            <div className="stat-card">
+              <span className="icono">⭐</span>
+              <span className="valor">{destacados}</span>
+              <span className="etiqueta">Destacados</span>
+            </div>
+          </div>
+
+          <div className="admin-actions">
+            <button className="btn-outline" onClick={() => navigate("/menu")}>
+              Revisar productos
+            </button>
+            <button className="btn-danger-lg" onClick={handleLogout}>
+              Cerrar sesión
+            </button>
+          </div>
         </div>
       </div>
 

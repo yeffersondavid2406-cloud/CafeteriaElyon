@@ -8,7 +8,7 @@ function FeaturedProducts() {
 
   return (
     <section className="featured" id="destacados">
-      <h2>⭐ Productos Destacados</h2>
+      <h2>Nuestros Favoritos</h2>
 
       <div className="productos">
         {destacados.map((producto) => (
