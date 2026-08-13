@@ -3,13 +3,16 @@ import dotenv from "dotenv";
 
 dotenv.config();
 
+const dbUrl = new URL(process.env.DATABASE_URL);
+
+console.log("🔎 DB USER:", dbUrl.username);
+console.log("🔎 DB HOST:", dbUrl.hostname);
+console.log("🔎 DB PORT:", dbUrl.port);
+
 const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-  },
 });
 
 pool.on("connect", () => {

@@ -1,22 +1,42 @@
-const categorias = [
-  { valor: "Todos", etiqueta: "Todos" },
-  { valor: "Comida", etiqueta: "🍔 Comida" },
-  { valor: "Bebidas", etiqueta: "☕ Bebidas" },
-  { valor: "Postres", etiqueta: "🍰 Postres" },
-];
+const iconosCategorias = {
+  Comida: "🍔",
+  Bebidas: "☕",
+  Postres: "🍰",
+  Desayunos: "🍳",
+  Snacks: "🍟",
+  Cafés: "☕",
+};
 
-function CategoryFilter({ categoria, setCategoria }) {
+function CategoryFilter({
+  categoria,
+  setCategoria,
+  categorias = [],
+}) {
+  const categoriasUnicas = [
+    "Todos",
+    ...new Set(categorias.filter(Boolean)),
+  ];
+
   return (
     <div className="category-filter">
-      {categorias.map(({ valor, etiqueta }) => (
-        <button
-          key={valor}
-          className={categoria === valor ? "active" : ""}
-          onClick={() => setCategoria(valor)}
-        >
-          {etiqueta}
-        </button>
-      ))}
+      {categoriasUnicas.map((nombreCategoria) => {
+        const icono = iconosCategorias[nombreCategoria] || "📦";
+
+        const etiqueta =
+          nombreCategoria === "Todos"
+            ? "Todos"
+            : `${icono} ${nombreCategoria}`;
+
+        return (
+          <button
+            key={nombreCategoria}
+            className={categoria === nombreCategoria ? "active" : ""}
+            onClick={() => setCategoria(nombreCategoria)}
+          >
+            {etiqueta}
+          </button>
+        );
+      })}
     </div>
   );
 }

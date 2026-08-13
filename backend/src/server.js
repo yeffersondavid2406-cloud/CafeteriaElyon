@@ -1,10 +1,22 @@
 import express from "express";
+import cors from "cors";
+
 import pool from "./config/database.js";
+import productosRoutes from "./routes/productos.js";
+import pedidosRoutes from "./routes/pedidos.js";
+import pagosRoutes from "./routes/pagos.js";
 
 const app = express();
 
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+  })
+);
 app.use(express.json());
-
+app.use("/api/productos", productosRoutes);
+app.use("/api/pedidos", pedidosRoutes);
+app.use("/api/pagos", pagosRoutes);
 app.get("/api/test-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");

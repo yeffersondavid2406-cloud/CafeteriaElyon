@@ -7,6 +7,7 @@ function ProductCard({ producto }) {
 
   const handleAdd = () => {
     addToCart(producto);
+
     Swal.fire({
       icon: "success",
       title: "Producto agregado",
@@ -16,10 +17,12 @@ function ProductCard({ producto }) {
     });
   };
 
+  const precio = Number(producto.precio);
+
   return (
     <div className="card">
       <img
-        src={producto.imagen}
+        src={producto.imagen || "/placeholder-producto.jpg"}
         alt={producto.nombre}
         className="product-image"
       />
@@ -28,7 +31,7 @@ function ProductCard({ producto }) {
 
       <p>{producto.descripcion}</p>
 
-      <h4>${producto.precio.toLocaleString("es-CO")}</h4>
+      <h4>${precio.toLocaleString("es-CO")}</h4>
 
       <button onClick={handleAdd}>
         Agregar al carrito

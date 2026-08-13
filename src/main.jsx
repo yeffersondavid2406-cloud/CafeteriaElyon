@@ -5,8 +5,8 @@ import { BrowserRouter } from "react-router-dom";
 import App from "./App";
 import "./styles/main.css";
 
-import { CartProvider } from "./context/CartContext";
-import { AuthProvider } from "./context/AuthContext";
+import { CartProvider } from "./context/cartcontext.jsx";
+import { AuthProvider } from "./context/authcontext.jsx";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
