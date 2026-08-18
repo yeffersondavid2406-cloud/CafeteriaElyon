@@ -163,6 +163,7 @@ router.get("/", async (req, res) => {
         p.estado,
         p.fecha,
 
+        -- DETALLES DEL PEDIDO
         COALESCE(
           json_agg(
             json_build_object(
@@ -173,7 +174,21 @@ router.get("/", async (req, res) => {
             )
           ) FILTER (WHERE dp.id IS NOT NULL),
           '[]'::json
-        ) AS detalles
+        ) AS detalles,
+
+        -- INFORMACIÓN DEL PAGO
+        (
+          SELECT json_build_object(
+            'id', pg.id,
+            'metodo', pg.metodo,
+            'estado', pg.estado,
+            'fecha', pg.fecha
+          )
+          FROM pagos pg
+          WHERE pg.pedido_id = p.id
+          ORDER BY pg.id DESC
+          LIMIT 1
+        ) AS pago
 
       FROM pedidos p
 
@@ -288,6 +303,9 @@ router.patch("/:id/estado", async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
+
+    console.log("📦 Estado recibido:", estado);
+console.log("📦 Body recibido:", req.body);
 
     const estadosPermitidos = [
       "pendiente",

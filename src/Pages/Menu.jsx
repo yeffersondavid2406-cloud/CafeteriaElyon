@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import Navbar from "../components/Navbar";
 import ProductCard from "../components/ProductCard";
@@ -13,42 +13,72 @@ function Menu() {
   const [search, setSearch] = useState("");
   const [categoria, setCategoria] = useState("Todos");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  // =====================================================
+  // NORMALIZAR TEXTO
+  // =====================================================
+
+  const normalizar = (texto = "") =>
+    String(texto)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .trim();
+
+  // =====================================================
+  // CARGAR PRODUCTOS
+  // =====================================================
 
   useEffect(() => {
     const cargarProductos = async () => {
       try {
         setLoading(true);
+        setError("");
 
         const data = await obtenerProductos();
 
-        // Supabase tiene productos
-        if (Array.isArray(data) && data.length > 0) {
-          const disponibles = data
-            .filter((producto) => producto.disponible !== false)
-            .map((producto) => {
-              if (producto.imagen) return producto;
-
-              const local = productosLocales.find(
-                (p) =>
-                  p.nombre.toLowerCase() ===
-                  producto.nombre.toLowerCase()
-              );
-
-              return local
-                ? { ...producto, imagen: local.imagen }
-                : producto;
-            });
-
-          setProducts(disponibles);
-        } else {
-          // Supabase está vacío → usamos los productos locales
-          setProducts(productosLocales);
+        if (!Array.isArray(data)) {
+          throw new Error("La API no devolvió una lista de productos");
         }
-      } catch (error) {
-        console.error("❌ Error cargando productos desde la API:", error);
 
-        // Si la API falla → usamos los productos locales
+        // Productos disponibles desde PostgreSQL/Supabase
+        const productosDisponibles = data
+          .filter((producto) => producto.disponible !== false)
+          .map((producto) => {
+            // Si PostgreSQL ya tiene imagen, la usamos
+            if (producto.imagen) {
+              return producto;
+            }
+
+            // Si no tiene imagen, buscamos una imagen local
+            const productoLocal = productosLocales.find(
+              (local) =>
+                normalizar(local.nombre) ===
+                normalizar(producto.nombre)
+            );
+
+            return productoLocal
+              ? {
+                  ...producto,
+                  imagen: productoLocal.imagen,
+                }
+              : producto;
+          });
+
+        setProducts(productosDisponibles);
+      } catch (error) {
+        console.error(
+          "❌ Error cargando productos:",
+          error
+        );
+
+        // Respaldo local para evitar que el menú quede vacío
         setProducts(productosLocales);
+
+        setError(
+          "No se pudieron cargar los productos desde el servidor. Mostrando catálogo local."
+        );
       } finally {
         setLoading(false);
       }
@@ -57,76 +87,232 @@ function Menu() {
     cargarProductos();
   }, []);
 
-  const normalizar = (texto = "") =>
-    texto
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[\u0300-\u036f]/g, "");
+  // =====================================================
+  // CATEGORÍAS
+  // =====================================================
 
-  const categorias = [
-    "Todos",
-    ...new Set(
-      products
-        .map((producto) => producto.categoria)
-        .filter(Boolean)
-    ),
-  ];
+  const categorias = useMemo(() => {
+    const categoriasUnicas = [
+      ...new Set(
+        products
+          .map((producto) => producto.categoria)
+          .filter(Boolean)
+      ),
+    ];
 
-  const productosFiltrados = products.filter((producto) => {
-    const coincideNombre = normalizar(producto.nombre).includes(
-      normalizar(search)
-    );
+    return ["Todos", ...categoriasUnicas];
+  }, [products]);
 
-    const coincideCategoria =
-      categoria === "Todos" ||
-      producto.categoria === categoria;
+  // =====================================================
+  // FILTRAR PRODUCTOS
+  // =====================================================
 
-    return coincideNombre && coincideCategoria;
-  });
+  const productosFiltrados = useMemo(() => {
+    const textoBusqueda = normalizar(search);
+
+    return products.filter((producto) => {
+      const nombre = normalizar(producto.nombre);
+      const descripcion = normalizar(producto.descripcion);
+      const categoriaProducto = normalizar(
+        producto.categoria
+      );
+
+      const coincideBusqueda =
+        nombre.includes(textoBusqueda) ||
+        descripcion.includes(textoBusqueda);
+
+      const coincideCategoria =
+        categoria === "Todos" ||
+        categoriaProducto === normalizar(categoria);
+
+      return coincideBusqueda && coincideCategoria;
+    });
+  }, [products, search, categoria]);
+
+  // =====================================================
+  // CONTADORES
+  // =====================================================
+
+  const productosDestacados = useMemo(() => {
+    return products.filter(
+      (producto) => producto.destacado === true
+    ).length;
+  }, [products]);
+
+  // =====================================================
+  // CAMBIAR CATEGORÍA
+  // =====================================================
+
+  const cambiarCategoria = (nuevaCategoria) => {
+    setCategoria(nuevaCategoria);
+  };
+
+  // =====================================================
+  // LIMPIAR FILTROS
+  // =====================================================
+
+  const limpiarFiltros = () => {
+    setSearch("");
+    setCategoria("Todos");
+  };
+
+  // =====================================================
+  // INTERFAZ
+  // =====================================================
 
   return (
     <>
       <Navbar />
 
-      <div className="menu-container">
-        <h1>Nuestro Menú</h1>
+      <main className="menu-container">
 
-        <p className="menu-lead">
-          Sabores preparados con cariño para tu pausa perfecta
-        </p>
+        {/* =================================================
+            ENCABEZADO
+        ================================================= */}
 
-        <SearchBar
-          search={search}
-          setSearch={setSearch}
-        />
+        <section className="menu-header">
+          <h1>Nuestro Menú</h1>
 
-        <CategoryFilter
-          categoria={categoria}
-          setCategoria={setCategoria}
-          categorias={categorias}
-        />
-
-        {loading ? (
-          <p className="mensaje-productos">
-            Cargando productos...
+          <p className="menu-lead">
+            Sabores preparados con cariño para tu pausa perfecta ☕
           </p>
-        ) : (
-          <div className="productos">
-            {productosFiltrados.length > 0 ? (
-              productosFiltrados.map((producto) => (
-                <ProductCard
-                  key={producto.id}
-                  producto={producto}
-                />
-              ))
-            ) : (
-              <p>No se encontraron productos.</p>
-            )}
+        </section>
+
+        {/* =================================================
+            RESUMEN
+        ================================================= */}
+
+        {!loading && (
+          <section className="menu-resumen">
+            <div className="menu-resumen-item">
+              <strong>{products.length}</strong>
+              <span>Productos</span>
+            </div>
+
+            <div className="menu-resumen-item">
+              <strong>{categorias.length - 1}</strong>
+              <span>Categorías</span>
+            </div>
+
+            <div className="menu-resumen-item">
+              <strong>{productosDestacados}</strong>
+              <span>Destacados</span>
+            </div>
+          </section>
+        )}
+
+        {/* =================================================
+            FILTROS
+        ================================================= */}
+
+        <section className="menu-filtros">
+
+          <SearchBar
+            search={search}
+            setSearch={setSearch}
+          />
+
+          <CategoryFilter
+            categoria={categoria}
+            setCategoria={cambiarCategoria}
+            categorias={categorias}
+          />
+
+        </section>
+
+        {/* =================================================
+            AVISO DE ERROR / RESPALDO
+        ================================================= */}
+
+        {error && (
+          <div className="mensaje-productos">
+            ⚠️ {error}
           </div>
         )}
-      </div>
+
+        {/* =================================================
+            CARGANDO
+        ================================================= */}
+
+        {loading ? (
+          <div className="mensaje-productos">
+            <p>Cargando productos...</p>
+          </div>
+        ) : (
+
+          <>
+
+            {/* =================================================
+                RESULTADOS
+            ================================================= */}
+
+            <div className="menu-resultados">
+
+              <p>
+                Mostrando{" "}
+                <strong>
+                  {productosFiltrados.length}
+                </strong>{" "}
+                {productosFiltrados.length === 1
+                  ? "producto"
+                  : "productos"}
+              </p>
+
+            </div>
+
+            {/* =================================================
+                PRODUCTOS
+            ================================================= */}
+
+            {productosFiltrados.length > 0 ? (
+
+              <div className="productos">
+
+                {productosFiltrados.map((producto) => (
+                  <ProductCard
+                    key={producto.id}
+                    producto={producto}
+                  />
+                ))}
+
+              </div>
+
+            ) : (
+
+              <div className="sin-productos">
+
+                <div className="sin-productos-icono">
+                  🔎
+                </div>
+
+                <h2>
+                  No encontramos productos
+                </h2>
+
+                <p>
+                  No hay productos que coincidan con
+                  tu búsqueda o categoría.
+                </p>
+
+                <button
+                  type="button"
+                  className="btn-primary"
+                  onClick={limpiarFiltros}
+                >
+                  Limpiar filtros
+                </button>
+
+              </div>
+
+            )}
+
+          </>
+        )}
+
+      </main>
     </>
   );
 }
 
 export default Menu;
+

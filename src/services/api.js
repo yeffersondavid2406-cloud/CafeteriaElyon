@@ -29,3 +29,28 @@ export async function crearPedido(pedido) {
 
   return data;
 }
+export async function crearPago(pago) {
+  const response = await fetch(`${API_URL}/pagos`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(pago),
+  });
+
+  let data;
+
+  try {
+    data = await response.json();
+  } catch {
+    data = {};
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message || "No se pudo registrar el pago"
+    );
+  }
+
+  return data;
+}
