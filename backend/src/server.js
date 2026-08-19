@@ -2,21 +2,34 @@ import express from "express";
 import cors from "cors";
 
 import pool from "./config/database.js";
+import { env } from "./config/env.js";
 import productosRoutes from "./routes/productos.js";
 import pedidosRoutes from "./routes/pedidos.js";
 import pagosRoutes from "./routes/pagos.js";
+import authRoutes from "./routes/authRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 const app = express();
 
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: env.frontendUrl,
   })
 );
 app.use(express.json());
 app.use("/api/productos", productosRoutes);
 app.use("/api/pedidos", pedidosRoutes);
 app.use("/api/pagos", pagosRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/admin", adminRoutes);
+
+app.get("/api/health", (req, res) => {
+  return res.status(200).json({
+    success: true,
+    message: "API de Cafetería Elyon funcionando correctamente",
+  });
+});
+
 app.get("/api/test-db", async (req, res) => {
   try {
     const result = await pool.query("SELECT NOW()");
@@ -36,7 +49,7 @@ app.get("/api/test-db", async (req, res) => {
   }
 });
 
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || env.port || 3000;
 
 app.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en http://localhost:${PORT}`);

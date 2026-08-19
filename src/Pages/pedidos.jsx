@@ -1,10 +1,17 @@
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { Navigate } from "react-router-dom";
 import Swal from "sweetalert2";
 import Navbar from "../components/Navbar";
-
-const API_URL = "http://localhost:3000/api";
+import { AuthContext } from "../context/auth-context";
+import {
+  obtenerPedidos as obtenerPedidosAPI,
+  actualizarEstadoPedido,
+  actualizarEstadoPago,
+} from "../services/api";
 
 function Pedidos() {
+  const { user } = useContext(AuthContext);
+
   const [pedidos, setPedidos] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actualizando, setActualizando] = useState(null);
@@ -17,17 +24,9 @@ function Pedidos() {
     try {
       setLoading(true);
 
-      const response = await fetch(`${API_URL}/pedidos`);
+      const pedidosAPI = await obtenerPedidosAPI();
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message || "No se pudieron obtener los pedidos"
-        );
-      }
-
-      setPedidos(data.pedidos || []);
+      setPedidos(pedidosAPI?.pedidos || []);
     } catch (error) {
       console.error("❌ Error obteniendo pedidos:", error);
 
@@ -59,27 +58,10 @@ function Pedidos() {
     try {
       setActualizando(`pedido-${pedidoId}`);
 
-      const response = await fetch(
-        `${API_URL}/pedidos/${pedidoId}/estado`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            estado,
-          }),
-        }
+      const data = await actualizarEstadoPedido(
+        pedidoId,
+        estado
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "No se pudo actualizar el estado del pedido"
-        );
-      }
 
       // Actualizar solamente el pedido modificado
       setPedidos((prevPedidos) =>
@@ -126,27 +108,10 @@ function Pedidos() {
     try {
       setActualizando(`pago-${pagoId}`);
 
-      const response = await fetch(
-        `${API_URL}/pagos/${pagoId}/estado`,
-        {
-          method: "PATCH",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            estado,
-          }),
-        }
+      const data = await actualizarEstadoPago(
+        pagoId,
+        estado
       );
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(
-          data.message ||
-            "No se pudo actualizar el estado del pago"
-        );
-      }
 
       // Actualizar solamente el pago modificado
       setPedidos((prevPedidos) =>
@@ -309,6 +274,10 @@ function Pedidos() {
         return pago.estado || "Desconocido";
     }
   };
+
+  if (user?.rol !== "admin") {
+    return <Navigate to="/" replace />;
+  }
 
   // =====================================================
   // CARGANDO
@@ -523,10 +492,23 @@ function Pedidos() {
                       </span>
 
                       <strong>
-                        {pedido.cliente_id ||
+                        {pedido.usuario_usuario ||
+                          pedido.usuario_nombre ||
                           "Cliente general"}
                       </strong>
                     </div>
+
+                    {pedido.usuario_email && (
+                      <div>
+                        <span>
+                          ✉️ Email
+                        </span>
+
+                        <strong>
+                          {pedido.usuario_email}
+                        </strong>
+                      </div>
+                    )}
 
                     <div>
                       <span>

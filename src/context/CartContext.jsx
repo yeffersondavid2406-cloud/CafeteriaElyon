@@ -189,7 +189,6 @@ export function CartProvider({ children }) {
   // ===================================================
 
   const finalizarPedido = async ({
-    cliente_id = null,
     mesa = null,
   } = {}) => {
     // -----------------------------------------------
@@ -236,7 +235,6 @@ export function CartProvider({ children }) {
       // ---------------------------------------------
 
       const pedido = {
-        cliente_id,
         mesa,
         productos: cart.map((item) => ({
           producto_id: Number(item.id),

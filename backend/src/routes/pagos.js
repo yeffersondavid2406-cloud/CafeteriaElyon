@@ -1,13 +1,15 @@
 import express from "express";
 import pool from "../config/database.js";
+import { requireAuth, requireAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
 // =====================================================
-// CREAR PAGO
+// CREAR PAGO (requiere autenticación)
 // POST /api/pagos
+// Body: { pedido_id, metodo }
 // =====================================================
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, async (req, res) => {
   try {
     const { pedido_id, metodo } = req.body;
 
@@ -18,10 +20,7 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const metodosPermitidos = [
-      "efectivo",
-      "transferencia",
-    ];
+    const metodosPermitidos = ["efectivo", "transferencia"];
 
     if (!metodosPermitidos.includes(metodo)) {
       return res.status(400).json({
@@ -31,11 +30,9 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Verificar que el pedido exista
+    // Verificar que el pedido exista y (si es cliente) le pertenezca
     const pedidoResult = await pool.query(
-      `SELECT id
-       FROM pedidos
-       WHERE id = $1`,
+      `SELECT id, usuario_id FROM pedidos WHERE id = $1`,
       [pedido_id]
     );
 
@@ -46,28 +43,32 @@ router.post("/", async (req, res) => {
       });
     }
 
-    // Crear pago
+    if (
+      req.user.rol !== "admin" &&
+      Number(pedidoResult.rows[0].usuario_id) !== Number(req.user.id)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "No puedes registrar un pago para un pedido que no es tuyo",
+      });
+    }
+
     const result = await pool.query(
       `INSERT INTO pagos
-       (pedido_id, metodo, estado)
+         (pedido_id, metodo, estado)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [
-        pedido_id,
-        metodo,
-        "pendiente",
-      ]
+      [pedido_id, metodo, "pendiente"]
     );
 
-    res.status(201).json({
+    return res.status(201).json({
       success: true,
       message: "Pago registrado correctamente",
       pago: result.rows[0],
     });
   } catch (error) {
     console.error("❌ Error creando pago:", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error registrando el pago",
     });
@@ -75,30 +76,24 @@ router.post("/", async (req, res) => {
 });
 
 // =====================================================
-// OBTENER TODOS LOS PAGOS
+// OBTENER TODOS LOS PAGOS (solo administrador)
 // GET /api/pagos
 // =====================================================
-router.get("/", async (req, res) => {
+router.get("/", requireAuth, requireAdmin, async (req, res) => {
   try {
     const result = await pool.query(`
-      SELECT
-        p.id,
-        p.pedido_id,
-        p.metodo,
-        p.estado,
-        p.fecha
+      SELECT p.id, p.pedido_id, p.metodo, p.estado, p.fecha
       FROM pagos p
       ORDER BY p.fecha DESC
     `);
 
-    res.json({
+    return res.json({
       success: true,
       pagos: result.rows,
     });
   } catch (error) {
     console.error("❌ Error obteniendo pagos:", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error obteniendo pagos",
     });
@@ -106,23 +101,20 @@ router.get("/", async (req, res) => {
 });
 
 // =====================================================
-// OBTENER UN PAGO
+// OBTENER UN PAGO (admin: cualquiera, cliente: solo el suyo)
 // GET /api/pagos/:id
 // =====================================================
-router.get("/:id", async (req, res) => {
+router.get("/:id", requireAuth, async (req, res) => {
   try {
     const { id } = req.params;
 
     const result = await pool.query(
       `
-      SELECT
-        id,
-        pedido_id,
-        metodo,
-        estado,
-        fecha
-      FROM pagos
-      WHERE id = $1
+      SELECT pg.id, pg.pedido_id, pg.metodo, pg.estado, pg.fecha,
+             pe.usuario_id
+      FROM pagos pg
+      JOIN pedidos pe ON pe.id = pg.pedido_id
+      WHERE pg.id = $1
       `,
       [id]
     );
@@ -134,14 +126,24 @@ router.get("/:id", async (req, res) => {
       });
     }
 
-    res.json({
+    const pago = result.rows[0];
+
+    if (req.user.rol !== "admin" && Number(pago.usuario_id) !== Number(req.user.id)) {
+      return res.status(403).json({
+        success: false,
+        message: "No tienes permisos para ver este pago",
+      });
+    }
+
+    delete pago.usuario_id;
+
+    return res.json({
       success: true,
-      pago: result.rows[0],
+      pago,
     });
   } catch (error) {
     console.error("❌ Error obteniendo pago:", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error obteniendo pago",
     });
@@ -149,23 +151,15 @@ router.get("/:id", async (req, res) => {
 });
 
 // =====================================================
-// ACTUALIZAR ESTADO DEL PAGO
+// ACTUALIZAR ESTADO DEL PAGO (solo administrador)
 // PATCH /api/pagos/:id/estado
 // =====================================================
-router.patch("/:id/estado", async (req, res) => {
+router.patch("/:id/estado", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
 
-    console.log("📦 Estado recibido:", estado);
-console.log("📦 Body recibido:", req.body);
-
-    const estadosPermitidos = [
-      "pendiente",
-      "pagado",
-      "rechazado",
-      "cancelado",
-    ];
+    const estadosPermitidos = ["pendiente", "pagado", "rechazado", "cancelado"];
 
     if (!estadosPermitidos.includes(estado)) {
       return res.status(400).json({
@@ -176,12 +170,10 @@ console.log("📦 Body recibido:", req.body);
     }
 
     const result = await pool.query(
-      `
-      UPDATE pagos
-      SET estado = $1
-      WHERE id = $2
-      RETURNING *
-      `,
+      `UPDATE pagos
+       SET estado = $1
+       WHERE id = $2
+       RETURNING *`,
       [estado, id]
     );
 
@@ -192,15 +184,14 @@ console.log("📦 Body recibido:", req.body);
       });
     }
 
-    res.json({
+    return res.json({
       success: true,
       message: "Estado del pago actualizado",
       pago: result.rows[0],
     });
   } catch (error) {
     console.error("❌ Error actualizando pago:", error);
-
-    res.status(500).json({
+    return res.status(500).json({
       success: false,
       message: "Error actualizando pago",
     });

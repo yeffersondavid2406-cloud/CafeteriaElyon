@@ -1,56 +1,117 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { AuthContext } from "./auth-context";
-
-const USERS_KEY = "elyon-admin-users";
-const SESSION_KEY = "elyon-admin-session";
-
-function loadJSON(key) {
-  try {
-    const stored = localStorage.getItem(key);
-    return stored ? JSON.parse(stored) : null;
-  } catch {
-    return null;
-  }
-}
+import {
+  getToken,
+  setToken,
+  clearToken,
+  registerUser,
+  loginUser,
+  logout as apiLogout,
+  obtenerUsuarioActual,
+  actualizarPerfil,
+} from "../services/api";
 
 export function AuthProvider({ children }) {
-  const [users, setUsers] = useState(() => loadJSON(USERS_KEY) ?? []);
-  const [admin, setAdmin] = useState(() => loadJSON(SESSION_KEY));
+  const [user, setUser] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  // =====================================================
+  // RESTAURAR SESIÓN AL RECARGAR
+  // =====================================================
 
   useEffect(() => {
-    localStorage.setItem(USERS_KEY, JSON.stringify(users));
-  }, [users]);
+    const restaurarSesion = async () => {
+      if (!getToken()) {
+        setLoading(false);
+        return;
+      }
 
-  useEffect(() => {
-    localStorage.setItem(SESSION_KEY, JSON.stringify(admin));
-  }, [admin]);
+      try {
+        const data = await obtenerUsuarioActual();
+        setUser(data.user);
+      } catch {
+        clearToken();
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  const register = (usuario, password) => {
-    if (!usuario.trim() || !password.trim()) {
-      return { ok: false, msg: "Completa todos los campos." };
+    restaurarSesion();
+  }, []);
+
+  // =====================================================
+  // REGISTRO
+  // =====================================================
+
+  const register = useCallback(
+    async ({ nombre, nombre_usuario, email, password }) => {
+      const data = await registerUser({
+        nombre,
+        nombre_usuario,
+        email,
+        password,
+      });
+
+      setToken(data.token);
+      setUser(data.user);
+
+      return data;
+    },
+    []
+  );
+
+  // =====================================================
+  // LOGIN
+  // =====================================================
+
+  const login = useCallback(async (identificador, password) => {
+    const data = await loginUser({ identificador, password });
+
+    setToken(data.token);
+    setUser(data.user);
+
+    return data;
+  }, []);
+
+  // =====================================================
+  // ACTUALIZAR PERFIL (nombre_usuario, nombre)
+  // =====================================================
+
+  const updateProfile = useCallback(async (datos) => {
+    const data = await actualizarPerfil(datos);
+
+    setUser(data.user);
+
+    return data;
+  }, []);
+
+  // =====================================================
+  // LOGOUT
+  // =====================================================
+
+  const logout = useCallback(async () => {
+    try {
+      await apiLogout();
+    } catch {
+      // El backend no guarda sesión: no es un error grave
     }
-    if (users.find((u) => u.usuario === usuario)) {
-      return { ok: false, msg: "El usuario administrador ya existe." };
-    }
-    setUsers((prev) => [...prev, { usuario, password }]);
-    return { ok: true };
-  };
 
-  const login = (usuario, password) => {
-    const found = users.find(
-      (u) => u.usuario === usuario && u.password === password
-    );
-    if (!found) {
-      return { ok: false, msg: "Usuario o contraseña incorrectos." };
-    }
-    setAdmin(found);
-    return { ok: true };
-  };
-
-  const logout = () => setAdmin(null);
+    clearToken();
+    setUser(null);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ admin, register, login, logout }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        register,
+        login,
+        updateProfile,
+        logout,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );

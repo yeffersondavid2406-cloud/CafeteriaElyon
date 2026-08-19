@@ -1,7 +1,9 @@
 import { useContext, useState } from "react";
 import Swal from "sweetalert2";
+import { Link } from "react-router-dom";
 
 import { CartContext } from "../context/cart-context";
+import { AuthContext } from "../context/auth-context";
 import Navbar from "../components/Navbar";
 import { crearPago } from "../services/api";
 
@@ -22,6 +24,8 @@ function Cart() {
     finalizarPedido,
     creatingOrder,
   } = useContext(CartContext);
+
+  const { user } = useContext(AuthContext);
 
   const [pago, setPago] = useState("efectivo");
   const [mesa, setMesa] = useState(null);
@@ -56,6 +60,18 @@ function Cart() {
 
   const realizarPedido = async () => {
     if (procesando || creatingOrder) {
+      return;
+    }
+
+    if (!user) {
+      await Swal.fire({
+        icon: "warning",
+        title: "Inicia sesión",
+        text:
+          "Debes iniciar sesión para poder realizar un pedido.",
+        confirmButtonText: "Aceptar",
+      });
+
       return;
     }
 
@@ -173,7 +189,6 @@ function Cart() {
 
       const respuestaPedido =
         await finalizarPedido({
-          cliente_id: null,
           mesa,
         });
 
@@ -517,6 +532,8 @@ function Cart() {
               </strong>
             </div>
 
+            {user ? (
+              <>
             {/* =================================================
                 MESA
             ================================================= */}
@@ -682,6 +699,24 @@ function Cart() {
               </button>
 
             </div>
+              </>
+            ) : (
+              <div className="cart-login-requerido">
+                <h3>🔒 Inicia sesión para pedir</h3>
+                <p>
+                  Necesitas una cuenta para poder realizar tu pedido en
+                  Cafetería Elyon.
+                </p>
+                <div className="cart-login-actions">
+                  <Link to="/login" className="btn-primary">
+                    Iniciar sesión
+                  </Link>
+                  <Link to="/registro" className="btn-outline">
+                    Crear cuenta
+                  </Link>
+                </div>
+              </div>
+            )}
           </>
         )}
 

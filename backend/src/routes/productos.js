@@ -1,5 +1,6 @@
 import express from "express";
 import pool from "../config/database.js";
+import { requireAuth, requireAdmin } from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -87,7 +88,7 @@ router.get("/:id", async (req, res) => {
 // CREAR PRODUCTO
 // POST /api/productos
 // ==========================================
-router.post("/", async (req, res) => {
+router.post("/", requireAuth, requireAdmin, async (req, res) => {
   try {
     const {
       nombre,
@@ -151,7 +152,7 @@ router.post("/", async (req, res) => {
 // ACTUALIZAR PRODUCTO
 // PUT /api/productos/:id
 // ==========================================
-router.put("/:id", async (req, res) => {
+router.put("/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 
@@ -217,7 +218,7 @@ router.put("/:id", async (req, res) => {
 // ELIMINAR PRODUCTO
 // DELETE /api/productos/:id
 // ==========================================
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", requireAuth, requireAdmin, async (req, res) => {
   try {
     const { id } = req.params;
 

@@ -1,22 +1,46 @@
-import { useContext } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import { useContext, useEffect, useState } from "react";
+import { Navigate, useNavigate, Link } from "react-router-dom";
 import Swal from "sweetalert2";
 
 import { AuthContext } from "../context/auth-context";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
-import products from "../data/products";
+import { obtenerDashboard } from "../services/api";
 
 function Admin() {
-  const { admin, logout } = useContext(AuthContext);
+  const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  if (!admin) {
-    return <Navigate to="/login" replace />;
-  }
+  const [dashboard, setDashboard] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const categorias = [...new Set(products.map((p) => p.categoria))];
-  const destacados = products.filter((p) => p.destacado).length;
+  useEffect(() => {
+    if (user?.rol !== "admin") {
+      return;
+    }
+
+    const cargar = async () => {
+      try {
+        const data = await obtenerDashboard();
+        setDashboard(data);
+      } catch (error) {
+        console.error("❌ Error cargando dashboard:", error);
+        Swal.fire({
+          icon: "error",
+          title: "Error",
+          text: error.message || "No se pudo cargar el dashboard.",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    cargar();
+  }, [user]);
+
+  if (!user || user.rol !== "admin") {
+    return <Navigate to="/" replace />;
+  }
 
   const handleLogout = () => {
     Swal.fire({
@@ -25,13 +49,35 @@ function Admin() {
       showCancelButton: true,
       confirmButtonText: "Sí, salir",
       cancelButtonText: "Cancelar",
-    }).then((result) => {
+    }).then(async (result) => {
       if (result.isConfirmed) {
-        logout();
+        await logout();
         navigate("/");
       }
     });
   };
+
+  const formatoMoneda = (valor) =>
+    Number(valor || 0).toLocaleString("es-CO", {
+      style: "currency",
+      currency: "COP",
+      minimumFractionDigits: 0,
+    });
+
+  const tarjetas = dashboard
+    ? [
+        { etiqueta: "Total pedidos", valor: dashboard.totalPedidos, icono: "📋" },
+        { etiqueta: "Pendientes", valor: dashboard.pendientes, icono: "⏳" },
+        { etiqueta: "En preparación", valor: dashboard.preparando, icono: "👨‍🍳" },
+        { etiqueta: "Listos", valor: dashboard.listos, icono: "✅" },
+        { etiqueta: "Entregados", valor: dashboard.entregados, icono: "📦" },
+        { etiqueta: "Cancelados", valor: dashboard.cancelados, icono: "🚫" },
+        { etiqueta: "Ventas", valor: formatoMoneda(dashboard.ventas), icono: "💰" },
+        { etiqueta: "Clientes", valor: dashboard.totalClientes, icono: "👥" },
+        { etiqueta: "Productos", valor: dashboard.totalProductos, icono: "🍽️" },
+        { etiqueta: "Pagos pendientes", valor: dashboard.pagosPendientes, icono: "💳" },
+      ]
+    : [];
 
   return (
     <>
@@ -40,43 +86,43 @@ function Admin() {
       <div className="admin-page">
         <h1 className="admin-title">Panel de Administración</h1>
         <p className="admin-subtitle">
-          Gestiona los productos y pedidos de la cafetería con facilidad
+          Gestiona pedidos, productos y clientes de la cafetería
         </p>
 
         <div className="admin-panel">
           <p className="admin-greeting">
             Sesión iniciada como{" "}
-            <strong>{admin.usuario}</strong> 👋
+            <strong>{user.nombre_usuario || user.nombre}</strong> 👋
           </p>
 
-          <div className="admin-stats">
-            <div className="stat-card">
-              <span className="icono">🍽️</span>
-              <span className="valor">{products.length}</span>
-              <span className="etiqueta">Productos</span>
-            </div>
-
-            <div className="stat-card">
-              <span className="icono">🏷️</span>
-              <span className="valor">{categorias.length}</span>
-              <span className="etiqueta">Categorías</span>
-            </div>
-
-            <div className="stat-card">
-              <span className="icono">⭐</span>
-              <span className="valor">{destacados}</span>
-              <span className="etiqueta">Destacados</span>
-            </div>
-          </div>
-
           <div className="admin-actions">
-            <button className="btn-outline" onClick={() => navigate("/menu")}>
-              Revisar productos
-            </button>
+            <Link to="/admin/pedidos" className="btn-outline">
+              📋 Pedidos
+            </Link>
+            <Link to="/admin/productos" className="btn-outline">
+              🍽️ Productos
+            </Link>
+            <Link to="/admin/clientes" className="btn-outline">
+              👥 Clientes
+            </Link>
             <button className="btn-danger-lg" onClick={handleLogout}>
               Cerrar sesión
             </button>
           </div>
+
+          {loading ? (
+            <p className="admin-loading">Cargando datos...</p>
+          ) : (
+            <div className="admin-stats">
+              {tarjetas.map((card) => (
+                <div key={card.etiqueta} className="stat-card">
+                  <span className="icono">{card.icono}</span>
+                  <span className="valor">{card.valor}</span>
+                  <span className="etiqueta">{card.etiqueta}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
